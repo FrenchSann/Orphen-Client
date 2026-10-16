@@ -3,6 +3,7 @@
 #include <imgui.h>
 #include <Windows.h>
 #include "core/state.hpp"
+#include "core/tick_hook.hpp"
 #include "modules/module.hpp"
 #include "modules/registry.hpp"
 
@@ -53,11 +54,16 @@ void draw(const Ctx& c, bool sdkReady) {
     } else if (!c.inWorld()) {
         ImGui::TextDisabled("Pas en partie.");
     } else if (!c.singleplayer) {
-        ImGui::TextColored({ 1.0f, 0.7f, 0.3f, 1.0f }, "Multijoueur : modules désactivés (solo uniquement).");
+        ImGui::TextColored({ 0.5f, 1.0f, 0.5f, 1.0f }, "Multijoueur : modules disponibles.");
     } else {
         ImGui::TextColored({ 0.5f, 1.0f, 0.5f, 1.0f }, "Solo : modules actifs.");
     }
     ImGui::Separator();
+
+    if (sdkReady && !tick_hook::ready()) {
+        ImGui::TextColored({ 1.0f, 0.7f, 0.3f, 1.0f }, "AutoClicker indisponible : hook de tick absent.");
+        ImGui::TextDisabled("Verifier orphen-bridge.jar et %%TEMP%%\\orphen.log");
+    }
 
     for (Module* m : modules::all()) {
         ImGui::PushID(m);

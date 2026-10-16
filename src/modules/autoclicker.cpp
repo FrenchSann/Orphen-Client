@@ -5,7 +5,7 @@
 
 using namespace sdk;
 
-void AutoClicker::onUpdate(Ctx& c) {
+void AutoClicker::onTick(Ctx& c) {
     if (c.screen || !state::leftHeld()) {
         next_ = {};
         return;
@@ -19,7 +19,8 @@ void AutoClicker::onUpdate(Ctx& c) {
         if (!clearEx(c.env) && using_) return;
     }
 
-    // Planification : intervalle fixe, sans rattrapage si on a pris du retard (lag, alt-tab...).
+    // Évalué uniquement au début d'un tick : au maximum un clic par tick,
+    // sans rattrapage en rafale si le jeu a pris du retard.
     const auto interval = std::chrono::duration_cast<clock::duration>(std::chrono::duration<double>(1.0 / cps_));
     next_ = (next_ == clock::time_point{} || now - next_ > interval) ? now + interval : next_ + interval;
 

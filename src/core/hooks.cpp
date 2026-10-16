@@ -1,4 +1,5 @@
 #include "core/hooks.hpp"
+#include "core/tick_hook.hpp"
 #include <MinHook.h>
 #include <imgui.h>
 #include <imgui_impl_win32.h>
@@ -9,7 +10,9 @@
 #include "gui/menu.hpp"
 #include "modules/module.hpp"
 #include "modules/registry.hpp"
+#include "modules/autoclicker.hpp"
 #include "sdk/game.hpp"
+#include <string>
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND, UINT, WPARAM, LPARAM);
 
@@ -136,6 +139,41 @@ namespace {
         return c;
     }
 
+    // Native bridge called inside Minecraft.runTick(), on the installing game thread.
+    // Build fresh JNI local references: never reuse the render frame's context.
+    void gameTick(JNIEnv* env) {
+        AutoClicker& clicker = modules::autoClicker();
+        if (!g_sdkReady || g_finished || state::unloadRequested || state::menuOpen ||
+            state::toggleMenuRequested || !state::gameFocused() || !clicker.enabled()) {
+            clicker.reset();
+            return;
+        }
+        if (env->PushLocalFrame(256) != JNI_OK) { sdk::clearEx(env); clicker.reset(); return; }
+        Ctx c = buildCtx(env);
+        bool active = !sdk::clearEx(env) && c.inWorld() && !c.screen;
+        if (active) {
+            const bool paused = env->CallBooleanMethod(c.mc, sdk::M.mc_isGamePaused);
+            active = !sdk::clearEx(env) && !paused;
+        }
+        if (active) clicker.onTick(c);
+        else clicker.reset();
+        sdk::clearEx(env);
+        env->PopLocalFrame(nullptr);
+    }
+
+    void installTickHook(JNIEnv* env) {
+        HMODULE module = nullptr;
+        wchar_t path[32768]{};
+        if (!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                reinterpret_cast<LPCWSTR>(&installTickHook), &module)) return;
+        DWORD size = GetModuleFileNameW(module, path, static_cast<DWORD>(std::size(path)));
+        if (!size || size >= std::size(path)) return;
+        std::wstring jar(path, size);
+        jar = jar.substr(0, jar.find_last_of(L"\\/") + 1) + L"orphen-bridge.jar";
+        if (!tick_hook::install(g_vm, env, sdk::C.Minecraft, jar.c_str(), gameTick))
+            LOG("AutoClicker indisponible : impossible d'installer le callback de tick (aucun repli sur le rendu)");
+    }
+
     // Ouvre/ferme le menu : libère la souris (setIngameNotInFocus) puis la recapture.
     void handleMenuToggle(Ctx& c) {
         if (!state::toggleMenuRequested) return;
@@ -198,6 +236,7 @@ namespace {
         if (!g_sdkTried) {
             g_sdkTried = true;
             g_sdkReady = sdk::init(env);
+            if (g_sdkReady) installTickHook(env);
         }
 
         if (env->PushLocalFrame(256) != JNI_OK) { sdk::clearEx(env); return; }
@@ -207,6 +246,13 @@ namespace {
         if (g_sdkReady) c = buildCtx(env);
 
         if (state::unloadRequested) {
+            if (!tick_hook::remove(env)) {
+                // Never unload a DLL which Java might still call.
+                LOG("Dechargement annule : restauration du tick impossible ; DLL conservee");
+                state::unloadRequested = false;
+                env->PopLocalFrame(nullptr);
+                return;
+            }
             shutdownAll(c);
             if (g_sdkReady) sdk::shutdown(env);
             env->PopLocalFrame(nullptr);
@@ -218,7 +264,7 @@ namespace {
         if (g_sdkReady) handleMenuToggle(c);
         else if (state::toggleMenuRequested) { state::toggleMenuRequested = false; state::menuOpen = !state::menuOpen; }
 
-        const bool active = g_sdkReady && c.singleplayer && c.inWorld();
+        const bool active = g_sdkReady && c.inWorld();
         if (g_sdkReady) runModules(c, active);
 
         ImGuiIO& io = ImGui::GetIO();

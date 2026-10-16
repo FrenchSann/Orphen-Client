@@ -4,8 +4,8 @@
 
 class Module;
 
-// État partagé entre la WndProc et le hook de SwapBuffers.
-// Les deux tournent sur le thread principal du jeu (LWJGL2 pompe les messages dans Display.update),
+// État partagé entre WndProc, SwapBuffers et le callback runTick.
+// Ils tournent sur le thread principal du jeu (le callback filtre le thread installateur),
 // donc pas besoin de synchronisation.
 namespace state {
     inline HWND hwnd = nullptr;

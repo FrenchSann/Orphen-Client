@@ -1,35 +1,35 @@
 #pragma once
 #include <jni.h>
 
-// Minecraft 1.8.9 vanilla — noms obfusqués (MCP 1.8.9 / stable_22, vérifiés contre 1.8.9.jar).
-// Version figée : tout est codé en dur, aucune couche de compatibilité.
+// Lunar Client 1.8.9 — noms vérifiés contre lunar_named_b5_1.8.9.kin.
+// Les classes sont résolues par le chargeur de Minecraft dans la JVM de Lunar.
 namespace sdk {
 
 struct Classes {
-    jclass Minecraft;          // ave  net.minecraft.client.Minecraft
-    jclass MovingObjectPos;    // auh  util.MovingObjectPosition
-    jclass MovingObjectType;   // auh$a
-    jclass Vec3;               // aui
-    jclass Entity;             // pk
-    jclass EntityLivingBase;   // pr
-    jclass EntityPlayer;       // wn
-    jclass AxisAlignedBB;      // aug
-    jclass World;              // adm
-    jclass PlayerController;   // bda  client.multiplayer.PlayerControllerMP
-    jclass InventoryPlayer;    // wm
-    jclass Container;          // xi
-    jclass ItemStack;          // zx
-    jclass ItemArmor;          // yj
-    jclass EnchantmentHelper;  // ack
-    jclass TileEntity;         // akw
-    jclass Vec3i;              // df   (BlockPos = cj extends df)
-    jclass TileChest;          // aky
-    jclass TileDispenser;      // alc
-    jclass TileDropper;        // ald  (extends alc)
-    jclass TileHopper;         // alj
-    jclass GuiInventory;       // azc
-    jclass ActiveRenderInfo;   // auz
-    jclass RenderManager;      // biu
+    jclass Minecraft;
+    jclass MovingObjectPos;
+    jclass MovingObjectType;
+    jclass Vec3;
+    jclass Entity;
+    jclass EntityLivingBase;
+    jclass EntityPlayer;
+    jclass AxisAlignedBB;
+    jclass World;
+    jclass PlayerController;
+    jclass InventoryPlayer;
+    jclass Container;
+    jclass ItemStack;
+    jclass ItemArmor;
+    jclass EnchantmentHelper;
+    jclass TileEntity;
+    jclass Vec3i;
+    jclass TileChest;
+    jclass TileDispenser;
+    jclass TileDropper;
+    jclass TileHopper;
+    jclass GuiInventory;
+    jclass ActiveRenderInfo;
+    jclass RenderManager;
     jclass List;               // java/util/List
 };
 
@@ -61,6 +61,7 @@ struct Fields {
 struct Methods {
     jmethodID mc_getMinecraft;     // static
     jmethodID mc_clickMouse, mc_isSingleplayer, mc_setIngameFocus, mc_setIngameNotInFocus;
+    jmethodID mc_runTick, mc_isGamePaused;
     jmethodID entity_getPositionEyes, entity_getLook, entity_rayTrace,
               entity_getEntityBoundingBox, entity_getCollisionBorderSize, entity_canBeCollidedWith;
     jmethodID living_swingItem;

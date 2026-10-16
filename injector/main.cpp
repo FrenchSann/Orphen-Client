@@ -1,4 +1,4 @@
-// Injecteur minimal : LoadLibraryW via CreateRemoteThread dans la fenêtre Minecraft 1.8.9 (classe LWJGL).
+// Injecteur minimal : LoadLibraryW dans la fenêtre Lunar Client 1.8.9 (classe LWJGL).
 // Usage : OrphenClient.exe [chemin\vers\orphen.dll]   (par défaut : orphen.dll à côté de l'exe)
 #include <Windows.h>
 #include <cstdio>
@@ -18,7 +18,8 @@ namespace {
         GetClassNameW(hwnd, cls, 64);
         GetWindowTextW(hwnd, title, 128);
         if (wcsstr(title, L"Lunar Client")) f->lunar = true;
-        if (wcscmp(cls, L"LWJGL") == 0 && wcsstr(title, L"Minecraft 1.8.9")) {
+        if (wcscmp(cls, L"LWJGL") == 0 && wcsstr(title, L"Lunar Client 1.8.9") &&
+            (wcsstr(title, L"Lunar Client 1.8.9")[18] == L'\0' || wcsstr(title, L"Lunar Client 1.8.9")[18] == L' ')) {
             GetWindowThreadProcessId(hwnd, &f->pid);
             return FALSE;
         }
@@ -40,7 +41,7 @@ namespace {
 
 int wmain(int argc, wchar_t** argv) {
     if (_isatty(_fileno(stdout))) _setmode(_fileno(stdout), _O_U16TEXT); // accents corrects dans la console
-    wprintf(L"Orphen Client — injecteur (Minecraft 1.8.9 vanilla)\n\n");
+    wprintf(L"Orphen Client — injecteur (Lunar Client 1.8.9)\n\n");
     return finish(run(argc, argv));
 }
 
@@ -66,10 +67,9 @@ int run(int argc, wchar_t** argv) {
     EnumWindows(enumProc, reinterpret_cast<LPARAM>(&f));
     if (!f.pid) {
         if (f.lunar)
-            wprintf(L"Lunar Client détecté : non supporté (ses classes ne sont pas celles de la 1.8.9 vanilla).\n"
-                    L"Lance la 1.8.9 depuis le launcher Minecraft officiel.\n");
+            wprintf(L"Lunar détecté, mais aucune fenêtre de jeu 1.8.9. Lance Minecraft 1.8.9 dans Lunar.\n");
         else
-            wprintf(L"Fenêtre \"Minecraft 1.8.9\" introuvable. Lance la 1.8.9 vanilla d'abord.\n");
+            wprintf(L"Fenêtre Lunar Client 1.8.9 introuvable. Lance le jeu depuis Lunar d'abord.\n");
         return 1;
     }
 

@@ -6,7 +6,8 @@ class AutoClicker : public Module {
 public:
     AutoClicker() : Module("AutoClicker", "Clique en boucle tant que le clic gauche est maintenu. Laisse casser les blocs.") {}
 
-    void onUpdate(Ctx& c) override;
+    void onTick(Ctx& c) override;
+    void reset() { next_ = {}; }
     void drawSettings() override;
 
 private:
