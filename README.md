@@ -47,7 +47,7 @@ Les erreurs éventuelles (mapping introuvable, etc.) sont écrites dans `%TEMP%\
 | Module | Ce qu'il fait |
 |---|---|
 | **AutoClicker** | Évalué à l'entrée de `Minecraft.runTick()`, jamais depuis le rendu. Tant que le clic gauche est maintenu, appelle `Minecraft.clickMouse()` au CPS réglé, au maximum une fois par tick et sans rafale de rattrapage. Laisse le minage normal et propose une pause pendant l'utilisation d'un objet. |
-| **Reach** | Raycast sur les entités jusqu'à la portée réglée (3 à 6 blocs), coupé par les blocs comme en vanilla. Si la cible est au-delà de la portée vanilla (3, ou 6 en créatif), il appelle `PlayerControllerMP.attackEntity`. Ça marche au clic manuel et avec l'AutoClicker. Au-delà de 6 blocs, le serveur intégré refuse l'attaque, d'où le plafond. |
+| **Reach** | Raycast sur les entités jusqu'à la portée réglée (3 à 6 blocs), coupé par les blocs comme en vanilla. Si la cible est au-delà de la portée vanilla (3, ou 6 en créatif), il appelle `PlayerControllerMP.attackEntity`. Les attaques manuelles et celles de l'AutoClicker passent par les ticks, avec animation avant l'attaque et pause pendant l'utilisation d'un objet. La portée étendue reste soumise à la validation du serveur et peut produire des flags Reach. |
 | **AutoArmor** | Équipe la meilleure pièce de l'inventaire. Score = points d'armure + niveau de Protection. Il agit sans écran ouvert ou dans l'inventaire, une pièce par délai. |
 | **StorageESP** | Boîtes 3D et tracers pour les coffres, coffres piégés, droppers, dispensers et hoppers. Couleur et activation se règlent par type, avec une distance max. La projection utilise les matrices de `ActiveRenderInfo`. |
 
@@ -109,18 +109,30 @@ Il vérifie l'absence de callback pendant le rendu ou depuis un autre thread, un
 par tick avant le corps original, la restauration, la réinstallation sans doublon et
 le nettoyage après un JAR absent ou une méthode incompatible.
 
-## AutoClicker et ticks
+## AutoClicker, Reach et ticks
 
 Le callback est inséré au début de `runTick()V` par retransformation JVMTI. Le transformateur
 ASM est chargé séparément des bibliothèques de Lunar ; le code original du tick est conservé.
 Le SDK et les contrôles d'état restent sur le thread principal. Le menu, une perte de focus,
 l'absence de monde, un écran ouvert ou une pause du jeu suspendent l'AutoClicker.
-Les autres modules conservent leur fonctionnement précédent.
+Reach manuel s'exécute aussi dans ce callback. Quand l'AutoClicker est activé, lui seul déclenche les attaques étendues, pour éviter une seconde attaque manuelle. AutoArmor et StorageESP conservent leur fonctionnement précédent.
 
-Si le JAR manque ou si la JVM refuse la retransformation, l'AutoClicker reste indisponible
+Si le JAR manque ou si la JVM refuse la retransformation, l'AutoClicker et Reach restent indisponibles
 et le menu l'indique : aucun repli vers le rendu. Au déchargement, une retransformation
 sans notre callback restaure la classe en préservant les transformations des autres agents.
 Si cette restauration échoue, la DLL reste chargée et l'erreur est journalisée.
 
 La compilation et les tests isolés ne prouvent pas la disparition d'un flag sur un serveur.
-Cette modification concerne le déclenchement de l'AutoClicker ; elle ne change pas la portée.
+La portée étendue de Reach (réglage de 3 à 6 blocs) est conservée. Le déplacement vers les ticks corrige le contexte d'exécution ; il ne rend pas une attaque hors portée conforme aux règles du serveur.
+
+Test ciblé du module Reach :
+
+```powershell
+build/Release/reach_test.exe
+```
+
+Il exécute le code réel de sélection de cible et d'attaque avec une interface JNI simulée :
+pause pendant l'utilisation d'objet, arrêt après une erreur JNI, portée étendue conservée,
+limite configurée, absence de double attaque à portée normale, occlusion par les blocs,
+animation avant attaque et absence de succès annoncé après échec.
+Ce test ne reproduit pas Grim ni les échanges réseau avec un serveur.

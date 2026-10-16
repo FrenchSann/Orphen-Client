@@ -1,8 +1,8 @@
 #pragma once
 #include "sdk/sdk.hpp"
 
-// État du jeu capturé une fois par frame, sur le thread principal (dans le hook de SwapBuffers).
-// Toutes les jobject sont des références locales, libérées par le PopLocalFrame de la frame.
+// État du jeu capturé sur le thread principal, séparément pour chaque frame ou tick.
+// Toutes les jobject sont des références locales, libérées par le PopLocalFrame correspondant.
 struct Ctx {
     JNIEnv* env = nullptr;
     jobject mc = nullptr;

@@ -3,9 +3,10 @@
 
 class Reach : public Module {
 public:
-    Reach() : Module("Reach", "Allonge la portée d'attaque (max 6 blocs : limite du serveur intégré).") {}
+    Reach() : Module("Reach", "Portée étendue (3 à 6 blocs). Le serveur peut refuser les attaques hors portée.") {}
 
-    void onUpdate(Ctx& c) override;
+    void onTick(Ctx& c) override;
+    void reset() { wasDown_ = false; }
     void drawSettings() override;
 
     // Attaque l'entité visée si elle est au-delà de la portée vanilla mais dans la portée du module.

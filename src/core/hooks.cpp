@@ -11,6 +11,7 @@
 #include "modules/module.hpp"
 #include "modules/registry.hpp"
 #include "modules/autoclicker.hpp"
+#include "modules/reach.hpp"
 #include "sdk/game.hpp"
 #include <string>
 
@@ -143,20 +144,27 @@ namespace {
     // Build fresh JNI local references: never reuse the render frame's context.
     void gameTick(JNIEnv* env) {
         AutoClicker& clicker = modules::autoClicker();
+        Reach& reach = modules::reach();
+        auto resetCombat = [&] { clicker.reset(); reach.reset(); };
         if (!g_sdkReady || g_finished || state::unloadRequested || state::menuOpen ||
-            state::toggleMenuRequested || !state::gameFocused() || !clicker.enabled()) {
-            clicker.reset();
+            state::toggleMenuRequested || !state::gameFocused() || (!clicker.enabled() && !reach.enabled())) {
+            resetCombat();
             return;
         }
-        if (env->PushLocalFrame(256) != JNI_OK) { sdk::clearEx(env); clicker.reset(); return; }
+        if (env->PushLocalFrame(256) != JNI_OK) { sdk::clearEx(env); resetCombat(); return; }
         Ctx c = buildCtx(env);
         bool active = !sdk::clearEx(env) && c.inWorld() && !c.screen;
         if (active) {
             const bool paused = env->CallBooleanMethod(c.mc, sdk::M.mc_isGamePaused);
             active = !sdk::clearEx(env) && !paused;
         }
-        if (active) clicker.onTick(c);
-        else clicker.reset();
+        if (active) {
+            if (clicker.enabled()) clicker.onTick(c);
+            else clicker.reset();
+            sdk::clearEx(env);
+            if (reach.enabled()) reach.onTick(c);
+            else reach.reset();
+        } else resetCombat();
         sdk::clearEx(env);
         env->PopLocalFrame(nullptr);
     }
@@ -171,7 +179,7 @@ namespace {
         std::wstring jar(path, size);
         jar = jar.substr(0, jar.find_last_of(L"\\/") + 1) + L"orphen-bridge.jar";
         if (!tick_hook::install(g_vm, env, sdk::C.Minecraft, jar.c_str(), gameTick))
-            LOG("AutoClicker indisponible : impossible d'installer le callback de tick (aucun repli sur le rendu)");
+            LOG("AutoClicker/Reach indisponibles : callback de tick absent (aucun repli sur le rendu)");
     }
 
     // Ouvre/ferme le menu : libère la souris (setIngameNotInFocus) puis la recapture.

@@ -40,6 +40,7 @@ jobject Reach::findTarget(Ctx& c, double& outDist) {
     const Vec3d look = game::readVec3(env, lookObj);
     env->DeleteLocalRef(eyesObj);
     env->DeleteLocalRef(lookObj);
+    if (clearEx(env)) return nullptr;
 
     // Un bloc devant coupe la portée (même raytrace que vanilla : Entity.rayTrace).
     double limit = range;
@@ -64,7 +65,8 @@ jobject Reach::findTarget(Ctx& c, double& outDist) {
     jobject list = env->GetObjectField(c.world, F.world_loadedEntityList);
     game::forEach(env, list, [&](jobject e) {
         if (env->IsSameObject(e, c.player)) return;
-        if (!env->CallBooleanMethod(e, M.entity_canBeCollidedWith) || clearEx(env)) return;
+        const bool collidable = env->CallBooleanMethod(e, M.entity_canBeCollidedWith);
+        if (clearEx(env) || !collidable) return;
         jobject bb = env->CallObjectMethod(e, M.entity_getEntityBoundingBox);
         float border = env->CallFloatMethod(e, M.entity_getCollisionBorderSize);
         if (clearEx(env) || !bb) return;
@@ -87,31 +89,37 @@ jobject Reach::findTarget(Ctx& c, double& outDist) {
 
 bool Reach::tryAttack(Ctx& c, bool swing) {
     if (!enabled() || !c.inWorld() || c.screen) return false;
+    const bool usingItem = c.env->CallBooleanMethod(c.player, M.player_isUsingItem);
+    if (clearEx(c.env) || usingItem) return false;
     double dist = 0.0;
     jobject target = findTarget(c, dist);
     if (!target) return false;
 
     // Portée entité vanilla : 6 en créatif (extendedReach), 3 sinon. En dessous, vanilla attaque déjà.
     const bool extended = c.env->CallBooleanMethod(c.controller, M.pc_extendedReach);
-    const double vanilla = (!clearEx(c.env) && extended) ? 6.0 : 3.0;
+    if (clearEx(c.env)) { c.env->DeleteLocalRef(target); return false; }
+    const double vanilla = extended ? 6.0 : 3.0;
 
     bool attacked = false;
     if (dist > vanilla) {
-        if (swing) c.env->CallVoidMethod(c.player, M.living_swingItem);
+        if (swing) {
+            c.env->CallVoidMethod(c.player, M.living_swingItem);
+            if (clearEx(c.env)) { c.env->DeleteLocalRef(target); return false; }
+        }
         c.env->CallVoidMethod(c.controller, M.pc_attackEntity, c.player, target);
-        clearEx(c.env);
-        attacked = true;
+        attacked = !clearEx(c.env);
     }
     c.env->DeleteLocalRef(target);
     return attacked;
 }
 
-void Reach::onUpdate(Ctx& c) {
-    // Clic manuel : vanilla a déjà balancé le bras (raté), on envoie juste l'attaque.
-    // Si l'autoclicker tourne, c'est lui qui appelle tryAttack à chaque clic.
+void Reach::onTick(Ctx& c) {
+    // À l'entrée du tick, l'animation vanilla n'a pas nécessairement eu lieu.
+    // Chaque attaque étendue manuelle envoie donc sa propre animation d'abord.
+    // Si l'autoclicker est activé, lui seul déclenche les attaques étendues.
     const bool down = state::leftHeld() && !c.screen;
     if (down && !wasDown_ && !modules::autoClicker().enabled())
-        tryAttack(c, false);
+        tryAttack(c, true);
     wasDown_ = down;
 }
 

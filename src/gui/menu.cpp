@@ -61,7 +61,7 @@ void draw(const Ctx& c, bool sdkReady) {
     ImGui::Separator();
 
     if (sdkReady && !tick_hook::ready()) {
-        ImGui::TextColored({ 1.0f, 0.7f, 0.3f, 1.0f }, "AutoClicker indisponible : hook de tick absent.");
+        ImGui::TextColored({ 1.0f, 0.7f, 0.3f, 1.0f }, "AutoClicker/Reach : hook de tick absent.");
         ImGui::TextDisabled("Verifier orphen-bridge.jar et %%TEMP%%\\orphen.log");
     }
 

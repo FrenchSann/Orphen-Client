@@ -153,7 +153,7 @@ bool install(JavaVM* vm, JNIEnv* env, jclass target, const wchar_t* bridgeJar, C
     if (!checked(g_ti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_CLASS_FILE_LOAD_HOOK, nullptr), "Enable transform")) return fail();
     if (!checked(g_ti->RetransformClasses(1, &g_target), "Install runTick") || !g_transformed) return fail();
     g_enabled = true;
-    LOG("AutoClicker : callback installe a l'entree de Minecraft.runTick()");
+    LOG("Combat : callback installe a l'entree de Minecraft.runTick()");
     env->PopLocalFrame(nullptr);
     return true;
 }

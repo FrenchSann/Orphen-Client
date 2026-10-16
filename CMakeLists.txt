@@ -66,6 +66,9 @@ set_target_properties(orphen injector PROPERTIES
 
 option(ORPHEN_BUILD_TESTS "Build the isolated JVM class-loader test" OFF)
 if(ORPHEN_BUILD_TESTS)
+    add_executable(reach_test tests/reach_test.cpp src/modules/reach.cpp src/modules/autoclicker.cpp)
+    target_include_directories(reach_test PRIVATE ${CMAKE_SOURCE_DIR}/src ${EXT}/jni)
+    target_link_libraries(reach_test PRIVATE imgui opengl32)
     add_executable(classloader_test tests/classloader_test.cpp)
     target_include_directories(classloader_test PRIVATE ${CMAKE_SOURCE_DIR}/src ${EXT}/jni)
     add_executable(tick_hook_test tests/tick_hook_test.cpp src/core/tick_hook.cpp)
