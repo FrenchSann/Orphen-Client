@@ -17,6 +17,10 @@ L'injecteur cible uniquement une fenêtre de jeu **Lunar Client 1.8.9** (LWJGL).
 Le launcher Lunar seul et Minecraft vanilla ne sont pas des cibles compatibles.
 Les autres versions de Minecraft ne sont pas prises en charge.
 
+## Versions compilées
+
+Les deux versions Windows x64 sont disponibles dans [releases/](releases/README.md).
+
 ## Build
 
 Il faut Visual Studio 2022 (C++), CMake ≥ 3.20, un **JDK 11 ou supérieur**
